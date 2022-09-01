@@ -1,0 +1,620 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using System.Configuration;
+using System.Drawing;
+using MySql;
+using MySql.Data.MySqlClient;
+using System.Data;
+using System.Net;
+using HtmlAgilityPack;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Xml;
+using System.IO;
+using System.Web.Services;
+using System.Web.Script.Services;
+
+public partial class _Default : System.Web.UI.Page
+{
+    int i;
+    MySqlConnection con = new MySqlConnection(ConfigurationManager.ConnectionStrings["africaconn1"].ConnectionString);
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        if (!IsPostBack)
+        {
+            string al = (string)Session["alog"];
+         //  if (al != null && al != "")
+          //  {
+                i = Convert.ToInt32((string)Request.QueryString["intcode"]);
+                viewdata();
+                lblmsg.ForeColor = Color.Green;
+                lblmsg.Text = (string)Cache["md"];
+                string url = "http://www.brabys.com/business/5855801/south-africa/northern-cape/kimberley/monument-heights/hotels/hotels/airport-hotel";
+                TextBox1.Text = url;
+                getload(url);
+               
+          //  }
+           // else
+           // {
+               // Response.Redirect("~/hostinsert/adminlogin.aspx");
+          //  }
+        }
+    }
+    protected void btnu_Click(object sender, EventArgs e)
+    {
+        nnext();
+    }
+    private void nnext()
+    {
+        Cache["md"] = "";
+        i = Convert.ToInt32((string)Request.QueryString["intcode"]);
+        int j = i + 1;
+        Response.Redirect("Default.aspx?intcode=" + j);
+        getdata();
+    }
+    MySqlConnection conn = new MySqlConnection(ConfigurationManager.ConnectionStrings["africainsert"].ConnectionString);
+    private void viewdata()
+    {
+        //MySqlConnection conn = new MySqlConnection("Data Source=EARTCH1;Initial Catalog=Hospital;Persist Security Info=True;User ID=sa;Password=test");
+        MySqlCommand cmd = new MySqlCommand("Select * from zaurl where flag = 0 limit 0,25", conn);
+        conn.Open();
+        DataSet ds = new DataSet();
+        MySqlDataAdapter da = new MySqlDataAdapter(cmd);
+        da.Fill(ds);
+        gvdata.DataSource = ds;
+        gvdata.DataBind();
+        conn.Close();
+        lblcou.Text = ccount().ToString();
+        getdata();
+
+    }
+    private void getload(string url)
+    {
+        urrlbus(url);
+        urrlpho(url);
+        urrladd(url);
+        urrlcat(url);
+        urrlweb(url);
+    }
+    private int ccount()
+    {
+        //MySqlConnection conn = new MySqlConnection("Data Source=EARTCH1;Initial Catalog=Hospital;Persist Security Info=True;User ID=sa;Password=test");
+        MySqlCommand cmd = new MySqlCommand("Select count(*) from zaurl", conn);
+        conn.Open();
+        object tot = Convert.ToInt32(cmd.ExecuteScalar());
+        conn.Close();
+        return Convert.ToInt32(tot);
+    }
+
+    private void getdata()
+    {
+        if (ccount() >= i)
+        {
+            //MySqlConnection conn = new MySqlConnection("Data Source=EARTCH1;Initial Catalog=Hospital;Persist Security Info=True;User ID=sa;Password=test");
+            MySqlCommand cmd = new MySqlCommand("Select * from zaurl where ID = " + i + " and flag = 0", conn);
+            conn.Open();
+            MySqlDataReader reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                string url = reader["url"].ToString();
+                txtmail.Text = reader["mailid"].ToString();
+                txtstate.Text = reader["state"].ToString();
+                //string cty = reader["city"].ToString();
+                //txtcty.Text = cty.Trim();
+                int flg = Convert.ToInt32(reader["flag"].ToString());
+                //string url = txturl.Text;
+                if (url != null)
+                {
+                    txturl.Text = url.Substring(0, 40) + "...";
+                    txturl.NavigateUrl = url;
+                }
+                getload(url);
+                if (flg == 1)
+                {
+                    lblmsg.ForeColor = Color.Red;
+                    lblmsg.Text = "Already Inserted";
+                }
+            }
+            reader.Close();
+            conn.Close();
+        }
+        else
+        {
+            lblmsg.ForeColor = Color.Red;
+            lblmsg.Text = "This ID does not exist";
+        }
+
+    }
+    private void urrlbus(string url)
+    {
+        try
+        {
+            WebClient client = new WebClient();
+            //SourceTest = client.ToString().DownloadString(url);
+            byte[] data = client.DownloadData(url);
+            string htmlCode = Encoding.UTF8.GetString(data); ;
+            // Replace all html breaks for line seperators.
+            htmlCode = htmlCode.Replace("<br>", "\r\n");
+            //Response.Write(htmlCode);
+            //htmlCode = Regex.Replace(TextBox1.Text, "</?(a|A).*?>", "");
+            HtmlDocument doc = new HtmlDocument();
+            doc.LoadHtml(htmlCode);
+            var itemList = doc.DocumentNode.SelectNodes("//div[@class='listing-title']")//this xpath selects all span tag having its class as hidden first
+                              .Select(p => p.InnerText)
+                              .ToList();
+            // Enumerate.
+            foreach (var itemList1 in itemList)
+            {
+                string test = itemList1.Trim();// +",".Split(',')[0];
+                string trim = Regex.Replace(test, @"\s\s+", ",");
+                txtbus.Text = trim.ToLower();
+                string[] bus = txtbus.Text.Split(' ');
+                txtbus.Text = FirstCharToUpper(txtbus.Text).TrimEnd('.');
+                if (bus.Length > 1)
+                {
+                    txtfn.Text = txtbus.Text.Split(' ')[0].Trim();
+                    txtun.Text = txtfn.Text + random();
+                    txtpwd.Text = random();
+                    txtln.Text = txtbus.Text.Split(' ')[1].Trim();
+                }
+                else
+                {
+                    txtfn.Text = txtbus.Text;
+                    txtun.Text = txtfn.Text + random();
+                    txtpwd.Text = random();
+                    txtln.Text = txtfn.Text.Substring(0, 3);
+                }
+                
+            }
+        }
+        catch (Exception ex)
+        {
+            
+        }
+    }
+    string trim;
+    private void urrlpho(string url)
+    {
+        
+        try
+        {
+            WebClient client = new WebClient();
+            //SourceTest = client.ToString().DownloadString(url);
+            byte[] data = client.DownloadData(url);
+            string htmlCode = Encoding.UTF8.GetString(data); ;
+            // Replace all html breaks for line seperators.
+            htmlCode = htmlCode.Replace("<br>", "\r\n");
+            //Response.Write(htmlCode);
+            //htmlCode = Regex.Replace(TextBox1.Text, "</?(a|A).*?>", "");
+            HtmlDocument doc = new HtmlDocument();
+            doc.LoadHtml(htmlCode);
+            var itemList = doc.DocumentNode.SelectNodes("//a[@class='contactItem numberLimit']")//this xpath selects all span tag having its class as hidden first
+                              .Select(p => p.InnerText)
+                              .ToList();
+            // Enumerate.
+            foreach (var itemList1 in itemList)
+            {
+                string test = itemList1.Trim();// +",".Split(',')[0];
+                trim = Regex.Replace(test, @"\s\s+", ",");
+                txtph.Text = trim.Trim();
+                break;
+            }
+            
+        }
+        catch (Exception ex)
+        {
+
+        }
+    }
+    public static string FirstCharToUpper(string value)
+    {
+        char[] array = value.ToCharArray();
+        // Handle the first letter in the string.
+        if (array.Length >= 1)
+        {
+            if (char.IsLower(array[0]))
+            {
+                array[0] = char.ToUpper(array[0]);
+            }
+        }
+        // Scan through the letters, checking for spaces.
+        // ... Uppercase the lowercase letters following spaces.
+        for (int i = 1; i < array.Length; i++)
+        {
+            if (array[i - 1] == ' ')
+            {
+                if (char.IsLower(array[i]))
+                {
+                    array[i] = char.ToUpper(array[i]);
+                }
+            }
+        }
+        return new string(array);
+    }
+
+    private void urrladd(string url)
+    {
+        try
+        {
+            WebClient client = new WebClient();
+            //SourceTest = client.ToString().DownloadString(url);
+            byte[] data = client.DownloadData(url);
+            string htmlCode = Encoding.UTF8.GetString(data); ;
+            // Replace all html breaks for line seperators.
+            htmlCode = htmlCode.Replace("<br>", "\r\n");
+            //Response.Write(htmlCode);
+            //htmlCode = Regex.Replace(TextBox1.Text, "</?(a|A).*?>", "");
+            HtmlDocument doc = new HtmlDocument();
+            doc.LoadHtml(htmlCode);
+            var itemList = doc.DocumentNode.SelectNodes("//div[@class='address_1']")//this xpath selects all span tag having its class as hidden first
+                              .Select(p => p.InnerText)
+                              .ToList();
+            // Enumerate.
+            foreach (var itemList1 in itemList)
+            {
+                string test = itemList1.Trim();// +",".Split(',')[0];
+                string trim = Regex.Replace(test, @"\s\s+", ",") + ",";
+                txtadd.Text += trim.Trim();
+            }
+            string[] ccc = txtadd.Text.Split(',');
+            txtpin.Text = ccc[ccc.Length - 2].Trim();
+            txtcty.Text = ccc[ccc.Length - 3].Trim();
+            getlatlong(txtcty.Text);
+            ss(txtcty.Text);
+        }
+        catch (Exception ex)
+        {
+
+        }
+    }
+    private void ss(string cty)
+    {
+        try
+        {
+            MySqlCommand cmd = new MySqlCommand("select ID,SID from city where Name ='" + cty + "'", con);
+            con.Open();
+            MySqlDataReader reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                lblcityid.Text = reader["ID"].ToString();
+                lblstateid.Text = reader["SID"].ToString();
+            }
+            reader.Close();
+            con.Close();
+            MySqlCommand cmd2 = new MySqlCommand("select state from state where ID =" + lblstateid.Text + "", con);
+            con.Open(); txtstate.Text = cmd2.ExecuteScalar().ToString(); con.Close();
+            //bind();
+        }
+        catch (Exception ex)
+        {
+            ClientScript.RegisterStartupScript(Page.GetType(), "validation", "<script language='javascript'>alert('Choose Current City')</script>");
+        }
+    }
+    /*private void bind()
+    {
+        con.Open();
+        MySqlCommand cmd = new MySqlCommand("Select Name FROM town where CID ='" + lblcityid.Text + "' order by Name", con);
+        MySqlDataAdapter da = new MySqlDataAdapter(cmd);
+        DataSet ds = new DataSet();
+        da.Fill(ds);
+        ddloc.DataSource = ds;
+        ddloc.DataTextField = "Name";
+        ddloc.DataBind();
+        ddloc.Items.Insert(0, new ListItem("", "0"));
+        con.Close();
+    }*/
+
+    protected void txtcty_TextChanged(object sender, EventArgs e)
+    {
+        ss(txtcty.Text);
+    }
+
+    private void urrlcat(string url)
+    {
+        try
+        {
+            WebClient client = new WebClient();
+            //SourceTest = client.ToString().DownloadString(url);
+            byte[] data = client.DownloadData(url);
+            string htmlCode = Encoding.UTF8.GetString(data); ;
+            // Replace all html breaks for line seperators.
+            htmlCode = htmlCode.Replace("<br>", "\r\n");
+            //Response.Write(htmlCode);
+            //htmlCode = Regex.Replace(TextBox1.Text, "</?(a|A).*?>", "");
+            HtmlDocument doc = new HtmlDocument();
+            doc.LoadHtml(htmlCode);
+            var itemList = doc.DocumentNode.SelectNodes("//div[@class='relatedCategories_links']")//this xpath selects all span tag having its class as hidden first
+                              .Select(p => p.InnerText)
+                              .ToList();
+
+            // Enumerate.
+            foreach (var itemList1 in itemList)
+            {
+                string test = itemList1.ToString();// +",".Split(',')[0];
+                string trim = Regex.Replace(test, @"\s\s+", ",").TrimStart(',');
+                string[] spcat = trim.Split(',');
+                
+                for (int i = 0; i <= spcat.Length-2; i++)
+                {
+                    txtcat.Text += spcat[i].Split(':')[0].Replace("-","")+",";
+                }
+            }
+            txtcat.Text = Regex.Replace(txtcat.Text, @"\s\s", " ");
+
+            
+        }
+        catch (Exception ex)
+        {
+        }
+    }
+
+    private void urrlweb(string url)
+    {
+        try
+        {
+            WebClient client = new WebClient();
+            //SourceTest = client.ToString().DownloadString(url);
+            byte[] data = client.DownloadData(url);
+            string htmlCode = Encoding.UTF8.GetString(data); ;
+            // Replace all html breaks for line seperators.
+            htmlCode = htmlCode.Replace("<br>", "\r\n");
+            //Response.Write(htmlCode);
+            //htmlCode = Regex.Replace(TextBox1.Text, "</?(a|A).*?>", "");
+            HtmlDocument doc = new HtmlDocument();
+            doc.LoadHtml(htmlCode);
+            var itemList = doc.DocumentNode.SelectNodes("//div[@class='web contactitem']")//this xpath selects all span tag having its class as hidden first
+                              .Select(p => p.InnerText)
+                              .ToList();
+            // Enumerate.
+            foreach (var itemList1 in itemList)
+            {
+                string test = itemList1.Trim();// +",".Split(',')[0];
+                string trim = Regex.Replace(test, @"\s\s+", ",");
+                txtweb.Text = trim.Split(':')[1].Trim();
+            }
+        }
+        catch (Exception ex)
+        {
+
+        }
+    }
+
+
+
+
+    static string GetHtmlPage(string strURL)
+    {
+
+        String strResult;
+        WebResponse objResponse;
+        WebRequest objRequest = HttpWebRequest.Create(strURL);
+        objResponse = objRequest.GetResponse();
+        using (StreamReader sr = new StreamReader(objResponse.GetResponseStream()))
+        {
+            strResult = sr.ReadToEnd();
+            sr.Close();
+        }
+        return strResult;
+    }
+
+    private void getlatlong(string cty)
+    {
+        try
+        {
+            XmlDataDocument xmlDoc = new XmlDataDocument();
+
+            xmlDoc.Load("http://maps.googleapis.com/maps/api/geocode/xml?address=" + cty + "&sensor=true");
+
+            XmlDataDocument xdoc = new XmlDataDocument();
+
+            xdoc.DataSet.ReadXml(new StringReader(xmlDoc.InnerXml));
+            DataView dv = new DataView();
+
+            dv = xdoc.DataSet.Tables["location"].DefaultView;
+
+            txtlat.Text = dv[0]["lat"].ToString();
+            txtlong.Text = dv[0]["lng"].ToString();
+        }
+        catch (Exception ex)
+        {
+                    
+        }
+        
+    }
+    
+
+
+    
+    public void SetContextKey()
+    {
+        AjaxControlToolkit.AutoCompleteExtender modal1 = (AjaxControlToolkit.AutoCompleteExtender)txtcty.FindControl("AutoCompleteTown");
+        modal1.ContextKey = lblcityid.Text;
+    }
+    
+    //insert
+    MySqlConnection con1 = new MySqlConnection(ConfigurationManager.ConnectionStrings["africaconn"].ConnectionString);
+    protected void btnsub_Click(object sender, EventArgs e)
+    {
+        string ran = random();
+        alreadyexistBN(ran);
+    }
+
+    // first
+    private string random()
+    {
+        var chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+        var random = new Random();
+        var result = new string(
+            Enumerable.Repeat(chars, 8)
+                      .Select(s => s[random.Next(s.Length)])
+                      .ToArray());
+        return result.ToString();
+    }
+
+    private void firstinsert(string ran)
+    {
+        string[] words = txtmail.Text.Split('@');
+        MySqlCommand cmd = new MySqlCommand("insert into userdetail(fname,lname,username,email_id,email_dom,mobile,password,city,relationshipbusiness,old_flag,new_flag,random) values('" + txtfn.Text + "','" + txtln.Text.Trim() + "','" + txtun.Text.Trim() + "','" + words[0] + "','" + words[1] + "','" + txtmob.Text + "','" + txtpwd.Text + "','" + txtcty.Text.Trim() + "','Manager',1,1,'" + ran + "')", con1);
+        con1.Open();
+        cmd.ExecuteNonQuery();
+        con1.Close();
+        //bb.Support(bb, bb.GetType());
+        //bb.ex_nonquery("insert into userdetail(fname,lname,username,email_id,email_dom,mobile,password,city,relationshipbusiness,old_flag,new_flag,random) values('" + txtfn.Text + "','" + txtln.Text.Trim() + "','" + txtun.Text.Trim() + "','" + words[0] + "','" + words[1] + "','" + txtmob.Text + "','" + txtpwd.Text + "','" + txtcty.Text.Trim() + "','Manager',1,1,'" + ran + "')");
+    }
+    //second
+    private void secondinsertbusiness(string ran)
+    {
+        string web = txtweb.Text;
+        if (web != string.Empty) { web = "http://" + web; } else { web = ""; }
+        string e1 = txtmail.Text.Split('@')[0];
+        string e2 = txtmail.Text.Split('@')[1];
+        MySqlCommand cmd = new MySqlCommand("insert into businessdetails (flag,uid,nameofbusiness,mobile,phone,email_id,email_dom,website,contactperson,address,pincode,locality," +
+        "landmark,city,state,datetime,random) values(1,'not','" + txtbus.Text.Trim().Replace("'","") + "','" + txtmob.Text + "','" + txtph.Text + "','" + e1 + "','" + e2 + "'," +
+        "'" + web + "'," +
+        "'" + txtfn.Text.Trim() + "','" + txtadd.Text.Replace("'", "") + "','" + txtpin.Text.Trim() + "','" + txtloc.Text.Trim() + "','" + txtland.Text.Trim().Replace("'", "") + "','" + txtcty.Text + "'," +
+        "'" + txtstate.Text + "',now(),'" + ran + "')", con1);
+        con1.Open();
+        cmd.ExecuteNonQuery();
+        con1.Close();
+        /*bb.ex_nonquery("insert into businessdetails (flag,uid,nameofbusiness,mobile,phone,email_id,email_dom,website,contactperson,address,pincode,locality," +
+        "landmark,city,state,datetime,random) values(1,'not','" + txtbus.Text.Trim() + "','" + txtmob.Text + "','" + txtph.Text + "','" + e1 + "','" + e2 + "'," +
+        "'" + web + "'," +
+        "'" + txtfn.Text.Trim() + "','" + txtadd.Text + "','" + txtpin.Text.Trim() + "','" + txtloc.Text.Trim() + "','" + txtland.Text.Trim() + "','" + txtcty.Text + "'," +
+        "'" + txtstate.Text + "',now(),'" + ran + "')");*/
+        //seoxml();
+        secondmaplocation(ran);
+    }
+    //already Check details
+    private void alreadyexistBN(string ran)
+    {
+        string e1 = txtmail.Text.Split('@')[0];
+        string e2 = txtmail.Text.Split('@')[1];
+        string[] words = txtmail.Text.Split('@');
+        MySqlCommand cmd = new MySqlCommand("SELECT count(*) FROM businessdetails WHERE nameofbusiness='" + txtbus.Text.Trim().Replace("'", "") + "' and email_id='" + e1 + "' and email_dom='" + e2 + "'", con1);
+        con1.Open();
+        //object catname = bb.executescalar("SELECT count(*) FROM businessdetails WHERE nameofbusiness='" + txtbus.Text.Trim() + "' and email_id='" + e1 + "' and email_dom='" + e2 + "'");
+        object catname =  cmd.ExecuteScalar();
+        con1.Close();
+        int exist = Convert.ToInt32(catname);
+        if (exist > 0)
+        {
+            lblmsg.ForeColor = Color.Red;
+            lblmsg.Text = "Already register this mail id and Business Name";
+            upflag();
+        }
+        else
+        {
+            secondinsertbusiness(ran);
+            firstinsert(ran);
+            thirdinsertcat(ran);
+        }
+
+    }
+    //
+    protected void secondmaplocation(string ran)
+    {
+        MySqlCommand cmd = new MySqlCommand("insert into maplocation (`NameoftheBusiness`,`Address`,`Landmark`,`City`,`Latitude`,`Longitude`,`bid`) values('" + txtbus.Text.Trim().Replace("'", "") + "','" + txtadd.Text.Replace("'", "") + "','" + txtland.Text.Replace("'", "") + "','" + txtcty.Text.Trim() + "','" + txtlat.Text + "','" + txtlong.Text + "','" + ran + "')", con1);
+        con1.Open();
+        cmd.ExecuteNonQuery();
+        con1.Close();
+        //bb.ex_nonquery("insert into maplocation (`NameoftheBusiness`,`Address`,`Landmark`,`City`,`Latitude`,`Longitude`,`bid`) values('" + txtbus.Text.Trim() + "','" + txtadd.Text + "','" + txtland.Text + "','" + txtcty.Text.Trim() + "','" + txtlat.Text + "','" + txtlong.Text + "','" + ran + "')");
+        seoxml(ran);
+    }
+    DataSet dss = new DataSet();
+    DataRow drr;
+    private void seoxml(string ran)
+    {
+        try
+        {
+            dss.ReadXml(Server.MapPath("treeseo/treeseo.xml"));
+            MySqlCommand cmd = new MySqlCommand("select max(ID) from businessdetails", con1);
+            con1.Open();
+            object oob = cmd.ExecuteScalar();
+            con1.Close();
+            //object oob = bb.executescalar("select max(ID) from businessdetails");
+            int id = int.Parse(oob.ToString());
+            drr = dss.Tables[0].NewRow();
+            string title = txtbus.Text.Replace(" ", "-").ToString();
+            drr[0] = "http://za.treedial.com/listing/" + txtcty.Text.Replace(" ", "-") + "/" + title.ToString() + "/" + ran;
+            drr[1] = DateTime.Now.ToString("o");
+            drr[2] = "daily";
+            drr[3] = "1.000";
+            dss.Tables[0].Rows.Add(drr);
+            dss.WriteXml(Server.MapPath("treeseo/treeseo.xml"));
+        }
+        catch (Exception ex)
+        {
+
+        }
+
+    }
+
+    //third
+    private void thirdinsertcat(string ran)
+    {
+        MySqlCommand cmd = new MySqlCommand("update businessdetails set category ='" + txtcat.Text + "',datetime=now() where random ='" + ran + "'", con1);
+        con1.Open();
+        cmd.ExecuteNonQuery();
+        con1.Close();
+        //bb.ex_nonquery("update businessdetails set category ='" + txtcat.Text + "',datetime=now() where random ='" + ran + "'");
+        check();
+        upflag();
+    }
+
+    //category check
+    private void check()
+    {
+        string[] cat = txtcat.Text.Split(',');
+        for (int i = 0; i <= cat.Length - 2; i++)
+        {
+            alreadyexist(cat[i]);
+        }
+    }
+    private void alreadyexist(string cat)
+    {
+        string[] words = txtmail.Text.Split('@');
+        MySqlCommand cmd = new MySqlCommand("SELECT count(*) FROM category WHERE catname='" + cat + "'", con1);
+        con1.Open();
+        object catname =  cmd.ExecuteScalar();
+        con1.Close();
+        //object catname = bb.executescalar("SELECT count(*) FROM category WHERE catname='" + cat + "'");
+        int exist = Convert.ToInt32(catname);
+        if (exist > 0)
+        {
+            //lblMessage.Text = "Already register this mail id use different mail id";
+        }
+        else
+        {
+            tempcat(cat);
+        }
+
+    }
+    protected void tempcat(string cat)
+    {
+        MySqlCommand cmd = new MySqlCommand("insert into tempcategory(`catname`) values('" + cat.Trim() + "')", con1);
+        con1.Open();
+        cmd.ExecuteNonQuery();
+        con1.Close();
+        //bb.ex_nonquery("insert into tempcategory(`catname`) values('" + cat.Trim() + "')");
+    }
+
+    //update
+    private void upflag()
+    {
+        Cache["md"] = "";
+        MySqlCommand cmd = new MySqlCommand("update zaurl set flag =1 where mailid ='" + txtmail.Text + "'", conn);
+        conn.Open();
+        cmd.ExecuteNonQuery();
+        conn.Close();
+        Cache["md"] = txtmail.Text + " Successfully inserted";
+        Response.Redirect(Request.RawUrl);
+    }
+
+
+    
+}
+

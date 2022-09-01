@@ -1,0 +1,127 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using System.Data.SqlClient;
+using System.Configuration;
+using System.Data;
+using System.Net;
+
+
+
+public partial class Search : System.Web.UI.Page
+{
+    int FileID;
+    SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["constring"].ConnectionString);
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        if (!IsPostBack)
+        {
+            bindview();
+        }
+    }
+    protected void Button1_Click(object sender, EventArgs e)
+    {
+        string para1 = keywd.Text;
+        string para2 = fname.Text;
+        SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["constring"].ConnectionString);
+        con.Open();
+
+        //  SqlCommand cmd = new SqlCommand("select FileName,UploadFile from Data1 where 'FileName' LIKE '%" + @param + "%'");
+        SqlCommand cmd1 = new SqlCommand("select * from Upload where FileKey like '%" +@para2 +"%'",con);
+        SqlCommand cmd = new SqlCommand("select * from Upload where FileName like '%" + @para1 + "%' ", con);
+        if (para1 != null)
+        {
+            SqlParameter search = new SqlParameter();
+            search.ParameterName = "@keywd";
+            search.Value = keywd.Text.Trim();
+            cmd.Parameters.Add(search);
+            cmd.Connection = con;
+            SqlDataReader dr = cmd.ExecuteReader();
+            DataTable dt = new DataTable();
+            dt.Load(dr);
+            // Response.Write("<script language='javascript'>alert('Record found')</script>");
+
+
+            GridView1.DataSource = dt;
+            GridView1.DataBind();
+        }
+        else {
+            SqlParameter search1 = new SqlParameter();
+            search1.ParameterName = "@fname";
+            search1.Value = fname.Text.Trim();
+            cmd1.Parameters.Add(search1);
+            cmd1.Connection = con;
+            SqlDataReader dv = cmd1.ExecuteReader();
+            DataTable ds = new DataTable();
+            ds.Load(dv);
+            GridView1.DataSource = ds;
+            GridView1.DataBind();
+            
+        }
+        keywd.Text = "";
+        fname.Text = "";
+    }       
+
+
+
+    
+  protected  void Button2_Click(object sender, EventArgs e)
+    {
+        keywd.Text = "";
+
+        
+        if(fname!=null)
+        {
+            fname.Text = "";
+        }
+        }
+
+  
+    protected void bindview()
+    {
+        con.Open();
+        SqlCommand cmd = new SqlCommand("select FileID,FileName,FileKey,Capital,FileType,Size from Upload ", con);
+        SqlDataAdapter da = new SqlDataAdapter(cmd);
+        DataSet dt = new DataSet();
+        da.Fill(dt);
+        con.Close();
+        GridView1.DataSource = dt;
+        GridView1.DataBind();
+    }
+    protected void GridView1_RowCommand(object sender, GridViewCommandEventArgs e)
+    {
+        if (e.CommandName == "Select")
+        {
+            int x = Convert.ToInt32(e.CommandArgument);
+            GridViewRow row = GridView1.Rows[x];
+            string FileID= row.Cells[0].Text.ToString();
+
+
+            con.Open();
+            SqlCommand com = new SqlCommand("select FileID,FileName,FileKey,Capital,FileType,Size from Upload where FileID=@FileID", con);
+            com.Parameters.AddWithValue("@FileID", FileID);
+            //com.Parameters.AddWithValue("@userid", userid);
+
+            SqlDataReader dr = com.ExecuteReader();
+
+            if (dr.Read())
+            {
+                Response.Clear();
+                Response.Buffer = true;
+                Response.ContentType = dr["FileID"].ToString();
+                Response.AddHeader("content-disposition", "data;FileName=" + dr["FileID"].ToString());     // to open file prompt Box open or Save file         
+                Response.Charset = "";
+                Response.Cache.SetCacheability(HttpCacheability.NoCache);
+                //Response.BinaryWrite((byte[])dr["Data"]);
+                Response.End();
+                //Response.Redirect("Download.aspx");
+            }
+            con.Close();
+        }
+
+
+    }
+}

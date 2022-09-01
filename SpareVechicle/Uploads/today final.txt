@@ -1,0 +1,18 @@
+ tl = title.Text;
+        con.Open();
+        SqlCommand cmd = new SqlCommand("select keyword from adminkey where keyword = '"+ tl + "' ",con);
+        cmd.Parameters.AddWithValue("@keyword",tl);
+        string name ;
+        
+       // SqlDataAdapter da = new SqlDataAdapter(cmd);        
+        cmd.ExecuteScalar();
+      //  DataTable ds = new DataTable();
+       // da.Fill(ds);
+        con.Close();
+       if (ds.Rows==null)
+                {
+                    Label1.Visible = true;
+           Label1.Text="Not Match";
+           // Response.Write("not found");
+       }
+       else{

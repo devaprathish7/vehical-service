@@ -1,0 +1,24 @@
+\\Pondyit\title change 2013\P1CC05 DOTNET
+
+SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["constring"].ConnectionString);
+        con.Open();
+        SqlDataAdapter da = new SqlDataAdapter("select * from Data1 where FileName like  '%"+ txtbox.Text + "%'", con);
+        DataSet ds = new DataSet();
+        da.Fill(ds);
+        gtview.DataSource = ds;
+        gtview.DataBind();
+    }
+
+
+
+
+ LinkButton lnkbtn = sender as LinkButton;
+        GridViewRow gvrow = lnkbtn.NamingContainer as GridViewRow;
+        FileName= GridView1.DataKeys[gvrow.RowIndex].Values[0].ToString();
+         string filePath = GridView1.Rows[0].Cells[0].Text;
+       // string filePath = gtview.DataKeys[gvrow.RowIndex].Value.ToString();
+        
+        Response.ContentType = "image/jpg";
+        Response.AddHeader("Content-Disposition", "attachment;filename=\"" + filePath + "\"");
+        Response.TransmitFile(Server.MapPath(filePath));
+        Response.End();

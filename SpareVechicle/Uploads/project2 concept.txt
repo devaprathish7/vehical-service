@@ -1,0 +1,171 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using System.Data.SqlClient;
+using System.Configuration;
+using System.Data;
+using System.Net;
+
+
+
+public partial class Search : System.Web.UI.Page
+{
+    int FileID;
+    SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["constring"].ConnectionString);
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        if (!IsPostBack)
+        {
+            bindview();
+        }
+    }
+    protected void Button1_Click(object sender, EventArgs e)
+    {
+        string para1 = keywd.Text;
+        string para2 = fname.Text;
+        SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["constring"].ConnectionString);
+        con.Open();
+
+        //  SqlCommand cmd = new SqlCommand("select FileName,UploadFile from Data1 where 'FileName' LIKE '%" + @param + "%'");
+        //SqlCommand cmd = new SqlCommand("select * from Upload where (FileKey like 'para1%");
+        SqlCommand cmd = new SqlCommand("select * from Upload where FileName like '%" + @para1 + "%' ", con);
+        try
+        {
+            SqlParameter search = new SqlParameter();
+            search.ParameterName = "@keywd";
+            search.Value = keywd.Text.Trim();
+            cmd.Parameters.Add(search);
+            cmd.Connection = con;
+            SqlDataReader dr = cmd.ExecuteReader();
+            DataTable dt = new DataTable();
+            dt.Load(dr);
+            // Response.Write("<script language='javascript'>alert('Record found')</script>");
+
+
+            GridView1.DataSource = dt;
+            GridView1.DataBind();
+        }
+        catch (Exception ex)
+        {
+            Response.Write(ex.Message);
+        }
+        finally
+        {
+
+            con.Close();
+        }
+
+
+
+
+    }
+    protected void Button2_Click(object sender, EventArgs e)
+    {
+        keywd.Text = "";
+        fname.Text = "";
+    }
+    protected void bindview()
+    {
+        con.Open();
+        SqlCommand cmd = new SqlCommand("select FileID,FileName,FileKey,Capital,FileType,Size from Upload ", con);
+        SqlDataAdapter da = new SqlDataAdapter(cmd);
+        DataSet dt = new DataSet();
+        da.Fill(dt);
+        con.Close();
+        GridView1.DataSource = dt;
+        GridView1.DataBind();
+    }
+    protected void GridView1_RowCommand(object sender, GridViewCommandEventArgs e)
+    {
+        if (e.CommandName == "Select")
+        {
+            int x = Convert.ToInt32(e.CommandArgument);
+            GridViewRow row = GridView1.Rows[x];
+            string FileID= row.Cells[0].Text.ToString();
+
+
+            con.Open();
+            SqlCommand com = new SqlCommand("select FileID,FileName,FileKey,Capital,FileType,Size from Upload where FileID=@FileID", con);
+            com.Parameters.AddWithValue("@FileID", FileID);
+            //com.Parameters.AddWithValue("@userid", userid);
+
+            SqlDataReader dr = com.ExecuteReader();
+
+            if (dr.Read())
+            {
+                Response.Clear();
+                Response.Buffer = true;
+                Response.ContentType = dr["FileID"].ToString();
+                Response.AddHeader("content-disposition", "data;FileName=" + dr["FileID"].ToString());     // to open file prompt Box open or Save file         
+                Response.Charset = "";
+                Response.Cache.SetCacheability(HttpCacheability.NoCache);
+                //Response.BinaryWrite((byte[])dr["Data"]);
+                Response.End();
+                //Response.Redirect("Download.aspx");
+            }
+            con.Close();
+        }
+
+
+    }
+}
+------------------------------------------------------------------------------
+ SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["constring"].ConnectionString);
+    protected void Page_Load(object sender, EventArgs e)
+    {
+    }
+    public ArrayList ConvertDataSetToArrayList()
+    {
+        SqlCommand cmd = new SqlCommand("select UserName,Password from UserRegistration", con);
+        cmd.CommandType = CommandType.Text;
+        con.Open();
+
+        SqlDataAdapter myAdapter = new SqlDataAdapter();
+        myAdapter.SelectCommand = cmd;
+
+        DataSet myDataSet = new DataSet();
+        myAdapter.Fill(myDataSet);
+
+        ArrayList myArrayList = new ArrayList();
+        foreach (DataRow dtRow in myDataSet.Tables[0].Rows)
+        {
+            myArrayList.Add(dtRow);
+        }
+        con.Close();
+        return myArrayList;
+    }
+    //public static string Decrypt(string encryptedString)
+    //{
+    //    FormsAuthenticationTicket Ftk = FormsAuthentication.Decrypt(encryptedString);
+    //    return Ftk.Name;
+    //}
+    private void condition()
+    {
+        ArrayList myArrayList = ConvertDataSetToArrayList();
+        foreach (Object row in myArrayList)
+        {
+            try
+            {
+                if (((DataRow)row)["UserName"].ToString() == txtUserName.Text && ((DataRow)row)["Password"].ToString() == txtPassword.Text)
+                {
+                    Session["UserName"] = txtUserName.Text.ToString();
+                    Session["UserName"] = (((DataRow)row)["UserName"].ToString());
+                    Session["Password"] = txtPassword.Text;
+                    Response.Redirect("Keywordclient.aspx");
+                }
+            }
+            catch
+            {
+                Response.Write("username or password is incorrect");
+
+            }
+        }
+    }
+    protected void txtLogin_Click(object sender, EventArgs e)
+    {
+        condition();
+    }
+}

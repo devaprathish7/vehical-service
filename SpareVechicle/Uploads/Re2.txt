@@ -1,0 +1,28 @@
+protected void lnkDownload_Click(object sender, EventArgs e)
+{
+LinkButton lnkbtn = sender as LinkButton;
+GridViewRow gvrow = lnkbtn.NamingContainer as GridViewRow;
+string filePath = gvDetails.DataKeys[gvrow.RowIndex].Value.ToString();
+Response.ContentType = "image/jpg";
+Response.AddHeader("Content-Disposition", "attachment;filename=\"" + filePath + "\"");
+Response.TransmitFile(Server.MapPath(filePath));
+Response.End();
+}
+
+
+ con.Open();
+        SqlCommand cmd = new SqlCommand("select FileName  from Ex1", con);
+        SqlDataAdapter da = new SqlDataAdapter(cmd);
+        DataSet ds = new DataSet();
+        da.Fill(ds);
+        con.Close();
+        GridView1.DataSource = ds;
+        GridView1.DataBind();
+
+LinkButton lnkbtn = sender as LinkButton;
+        GridViewRow gvrow = lnkbtn.NamingContainer as GridViewRow;
+        string filePath = FileName.OwnerTableView.DataKeyValues[FileName.FileNameIndex]["DataKeyName"].ToString();
+        Response.ContentType = "application/vnd.ms-excel, application/pdf, application/vnd.ms-excel";
+        Response.AddHeader("Content-Disposition", "attachment;filename=\"" + filePath + "\"");
+        Response.TransmitFile(Server.MapPath(filePath));
+        Response.End();

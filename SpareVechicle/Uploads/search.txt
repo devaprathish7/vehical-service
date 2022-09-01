@@ -1,0 +1,36 @@
+  SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["KtechConnectionString"].ConnectionString);
+        string my_Param = SearchByTagTB.Text;
+        con.Open();
+        SqlCommand cmd = new SqlCommand("Select FirstName,Lastname,Email,Mobile,Native,WorkLocation,ID from KgridFinal where FirstName LIKE '%" + @my_Param + "%'");
+       // SqlCommand cmd = new SqlCommand("Select Name,Mobile from Kgrid1 where Name LIKE '%" + @my_Param + "%'");
+         try
+        {
+
+            SqlParameter search = new SqlParameter();
+            search.ParameterName = "@SearchByTagTB";
+            search.Value = SearchByTagTB.Text.Trim();
+
+            cmd.Parameters.Add(search);
+            cmd.Connection = con;
+            SqlDataReader dr = cmd.ExecuteReader();
+            DataTable dt = new DataTable();
+            dt.Load(dr);
+            Response.Write("<script language='javascript'>alert('Record found')</script>");
+            gvPatients.DataSource = dt;
+            gvPatients.DataBind();
+              
+        }
+       catch (Exception ex)
+               {
+                   Response.Write("<script language='javascript'>alert('Record not found') ");        
+            Response.Write(ex.Message);
+            //Response.Write("<script language='javascript'>alert('Record not found') ");
+        }
+        finally
+        {
+            //Connection Object Closed
+            con.Close();
+        }
+    }
+}
+   // ref http://forums.asp.net/t/1669224.aspx
